@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:property-placeholder location="classpath:application.properties" ignore-resource-not-found="true"/>
+
+    <bean id="noErrorHandler" class="org.apache.camel.builder.NoErrorHandlerBuilder"/>
+
+
+    <bean id="forced" class="java.lang.Exception">
+        <constructor-arg index="0" value="Exception"/>
+    </bean>
+
+    <bean id="defaultUuid" class="org.apache.camel.impl.engine.DefaultUuidGenerator"/>
+
+    <bean id="test" class="com.voicecomm.telegramnotifier.utils.Test"/>
+
+    <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+        <property name="driverClassName" value="${spring.datasource.driver-class-name}"/>
+        <property name="url" value="${spring.datasource.jdbcUrl}"/>
+        <property name="username" value="${spring.datasource.username}"/>
+        <property name="password" value="${spring.datasource.password}"/>
+    </bean>
+
+    <bean id="keyboardBuilder" class="com.voicecomm.telegramnotifier.beans.KeyboardBuilder">
+        <constructor-arg name="parameters">
+            <list>
+                <value>Sabre.pl log</value>
+                <value>Short tasks statistic</value>
+                <value>Short voice calls statistic</value>
+            </list>
+        </constructor-arg>
+        <constructor-arg name="keyboardsTitle" value="Choose one option:"/>
+    </bean>
+
+
+    <camelContext id="SampleCamel" xmlns="http://camel.apache.org/schema/spring">
+        <propertyPlaceholder id="app_properties" location="classpath:application.properties"/>
+        <endpoint id="telegramBot" uri="telegram:bots?authorizationToken=${telegram.authorization-token}"/>
+
+        <dataFormats>
+            <json id="json" library="Jackson" include="NON_NULL" prettyPrint="true"/>
+        </dataFormats>
+
+        <route>
+            <from uri="telegramBot"/>
+            <setHeader name="incomingMessage">
+                <simple>${body}</simple>
+            </setHeader>
+            <to uri="direct:checkAccessRights"/>
+            <choice>
+                <when>
+                    <simple resultType="java.lang.Boolean">${header.accessAllowed} != true</simple>
+                    <choice>
+                        <when>
+                            <simple>${header.incomingMessage.getText} == {{chat.registration.password}}</simple>
+                            <to uri="direct:loginNewUser"/>
+                            <setBody>
+                                <simple>
+                                    Access is allowed!Welcome to the Chat-Bot
+                                </simple>
+                            </setBody>
+                        </when>
+                        <otherwise>
+                            <setBody>
+                                <simple>ACCESS IS DENIED! Please enter the password in following format:
+                                    /password:[password]
+                                </simple>
+                            </setBody>
+                        </otherwise>
+                    </choice>
+                    <to uri="telegramBot"/>
+                </when>
+                <otherwise>
+                    <!--<setBody>
+                        <simple>LETS TALK WITH ME</simple>
+                    </setBody>-->
+                    <to uri="direct:handleUserCommand"/>
+                    <bean ref="keyboardBuilder" method="getKeyBoard"/>
+                    <to uri="telegramBot"/>
+                </otherwise>
+            </choice>
+        </route>
+
+        <route>
+            <from uri="direct:handleUserCommand"/>
+            <choice>
+                <when>
+                    <simple>${header.incomingMessage.getText} == 'Short tasks statistic'</simple>
+                    <!--<setBody>
+                        <constant></constant>
+                    </setBody>-->
+                    <setHeader name="CamelHttpUri">
+                        <constant>{{aflmonitor.endpoint.short-task-stat}}?throwExceptionOnFailure=false&amp;bridgeEndpoint=true&amp;httpMethod=POST&amp;copyHeaders=true</constant>
+                    </setHeader>
+                    <to uri="direct:sendPostRequestToAflMonitor"/>
+                </when>
+                <when>
+                    <simple>${header.incomingMessage.getText} == 'Short voice calls statistic'</simple>
+                    <setHeader name="CamelHttpUri">
+                        <constant>{{aflmonitor.endpoint.short-calls-stat}}?throwExceptionOnFailure=false&amp;bridgeEndpoint=true&amp;httpMethod=POST&amp;copyHeaders=true</constant>
+                    </setHeader>
+                    <to uri="direct:sendPostRequestToAflMonitor"/>
+                </when>
+                <when>
+                    <simple>${header.incomingMessage.getText} == 'Sabre.pl log'</simple>
+                    <setHeader name="CamelHttpUri">
+                        <constant>{{aflmonitor.endpoint.sabrepllog}}?throwExceptionOnFailure=false&amp;bridgeEndpoint=true&amp;httpMethod=POST&amp;copyHeaders=true</constant>
+                    </setHeader>
+                    <to uri="direct:sendPostRequestToAflMonitor"/>
+                    <bean ref="test" method="getLastSubstring(4096)"/>
+                </when>
+                <otherwise>
+                    <setBody>
+                        <constant>Command is nt recognized</constant>
+                    </setBody>
+                </otherwise>
+            </choice>
+        </route>
+
+        <route>
+            <from uri="direct:checkAccessRights"/>
+            <setHeader name="USER_ID">
+                <simple>${header.incomingMessage.getFrom.getId}</simple>
+            </setHeader>
+            <setBody>
+                <simple>
+                    SELECT DISTINCT REGISTERED FROM TELEGRAM_USERS WHERE USERID = :?USER_ID
+                </simple>
+            </setBody>
+            <to uri="jdbc:dataSource?useHeadersAsParameters=true&amp;outputType=SelectOne"/>
+            <setHeader name="accessAllowed">
+                <simple resultType="java.lang.Boolean">${body} == true</simple>
+            </setHeader>
+        </route>
+
+        <route>
+            <from uri="direct:loginNewUser"/>
+            <setHeader name="USERID">
+                <simple>${header.incomingMessage.getFrom.getId}</simple>
+            </setHeader>
+            <setHeader name="CHATID">
+                <simple>${header.incomingMessage.getChat.getId}</simple>
+            </setHeader>
+            <setBody>
+                <simple>
+                    INSERT INTO TELEGRAM_USERS (USERID, CHATID, REGISTERED,updatetime)
+                    SELECT :?USERID, :?CHATID, true, CURRENT_TIME
+                    WHERE NOT EXISTS (SELECT 1 FROM TELEGRAM_USERS WHERE USERID = :?USERID AND CHATID = :?CHATID)
+                </simple>
+            </setBody>
+            <to uri="jdbc:dataSource?useHeadersAsParameters=true"/>
+        </route>
+
+        <route>
+            <from uri="direct:sendPostRequestToAflMonitor"/>
+            <setBody>
+                <constant></constant>
+            </setBody>
+            <setHeader name="Content-Type">
+                <constant>text/html</constant>
+            </setHeader>
+            <setHeader name="CamelHttpMethod">
+                <constant>POST</constant>
+            </setHeader>
+            <to uri="{{aflmonitor.endpoint.baseurl}}"/>
+            <transform>
+                <simple resultType="java.lang.String">${body}</simple>
+            </transform>
+        </route>
+
+    </camelContext>
+</beans>
