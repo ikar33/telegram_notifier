@@ -34,7 +34,7 @@ public class KeyboardBuilder {
             }
         }
         ReplyKeyboardMarkup replyMarkup = ReplyKeyboardMarkup.builder().keyboard()
-                .addRow(inlineKeyboardButtons)
+                .addOneRowByEachButton(inlineKeyboardButtons)
                 .close()
                 .oneTimeKeyboard(false)
                 .build();

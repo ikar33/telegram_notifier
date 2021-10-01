@@ -31,6 +31,7 @@
                 <value>Sabre.pl log</value>
                 <value>Short tasks statistic</value>
                 <value>Short voice calls statistic</value>
+                <value>Short SabreIx statistic</value>
             </list>
         </constructor-arg>
         <constructor-arg name="keyboardsTitle" value="Choose one option:"/>
@@ -60,14 +61,13 @@
                             <to uri="direct:loginNewUser"/>
                             <setBody>
                                 <simple>
-                                    Access is allowed!Welcome to the Chat-Bot
+                                    Access is allowed! Welcome to the Chat-Bot!
                                 </simple>
                             </setBody>
                         </when>
                         <otherwise>
                             <setBody>
-                                <simple>ACCESS IS DENIED! Please enter the password in following format:
-                                    /password:[password]
+                                <simple>ACCESS IS DENIED! Please enter the password in following format:"password:[password]"
                                 </simple>
                             </setBody>
                         </otherwise>
@@ -75,9 +75,6 @@
                     <to uri="telegramBot"/>
                 </when>
                 <otherwise>
-                    <!--<setBody>
-                        <simple>LETS TALK WITH ME</simple>
-                    </setBody>-->
                     <to uri="direct:handleUserCommand"/>
                     <bean ref="keyboardBuilder" method="getKeyBoard"/>
                     <to uri="telegramBot"/>
@@ -90,9 +87,6 @@
             <choice>
                 <when>
                     <simple>${header.incomingMessage.getText} == 'Short tasks statistic'</simple>
-                    <!--<setBody>
-                        <constant></constant>
-                    </setBody>-->
                     <setHeader name="CamelHttpUri">
                         <constant>{{aflmonitor.endpoint.short-task-stat}}?throwExceptionOnFailure=false&amp;bridgeEndpoint=true&amp;httpMethod=POST&amp;copyHeaders=true</constant>
                     </setHeader>
@@ -112,6 +106,13 @@
                     </setHeader>
                     <to uri="direct:sendPostRequestToAflMonitor"/>
                     <bean ref="test" method="getLastSubstring(4096)"/>
+                </when>
+                <when>
+                    <simple>${header.incomingMessage.getText} == 'Short SabreIx statistic'</simple>
+                    <setHeader name="CamelHttpUri">
+                        <constant>{{aflmonitor.endpoint.short-sabreix-stat}}?throwExceptionOnFailure=false&amp;bridgeEndpoint=true&amp;httpMethod=POST&amp;copyHeaders=true</constant>
+                    </setHeader>
+                    <to uri="direct:sendPostRequestToAflMonitor"/>
                 </when>
                 <otherwise>
                     <setBody>
