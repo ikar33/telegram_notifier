@@ -10,8 +10,9 @@ import java.util.Arrays;
 
 public class Test {
 
-    public void test(Exchange exchange) {
+    public void test(String mark, Exchange exchange) {
         //System.out.println(exchange.getIn().getBody());
+        System.out.println(mark);
         System.out.println(" ");
     }
 
@@ -21,11 +22,6 @@ public class Test {
         exchange.getIn().setBody("Hello, " + incomingMessage.getFrom().getFirstName() + " CHAT_ID=" + incomingMessage.getChat().getId());
     }
 
-    public void getLastSubstring(Integer substringLength, Exchange exchange) {
-        String message = exchange.getIn().getBody(String.class);
-        if (message != null && message.length() > substringLength)
-            exchange.getIn().setBody(message.substring(message.length() - substringLength));
-    }
 
     public void keyBoard(Exchange exchange) {
         OutgoingTextMessage msg = new OutgoingTextMessage();

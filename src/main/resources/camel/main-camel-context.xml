@@ -18,6 +18,8 @@
 
     <bean id="test" class="com.voicecomm.telegramnotifier.utils.Test"/>
 
+    <bean id="utils" class="com.voicecomm.telegramnotifier.utils.Utils"/>
+
     <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
         <property name="driverClassName" value="${spring.datasource.driver-class-name}"/>
         <property name="url" value="${spring.datasource.jdbcUrl}"/>
@@ -26,12 +28,24 @@
     </bean>
 
     <bean id="keyboardBuilder" class="com.voicecomm.telegramnotifier.beans.KeyboardBuilder">
-        <constructor-arg name="parameters">
+        <constructor-arg name="userkeyboard">
             <list>
-                <value>Sabre.pl log</value>
                 <value>Short tasks statistic</value>
                 <value>Short voice calls statistic</value>
                 <value>Short SabreIx statistic</value>
+                <value>Sabre.pl status</value>
+                <value>Sabre.pl log</value>
+            </list>
+        </constructor-arg>
+        <constructor-arg name="adminkeyboard">
+            <list>
+                <value>Sabre.pl log</value>
+                <value>Sabre.pl status</value>
+                <value>Short tasks statistic</value>
+                <value>Short voice calls statistic</value>
+                <value>Short SabreIx statistic</value>
+                <value>Get users</value>
+                <value>Test</value>
             </list>
         </constructor-arg>
         <constructor-arg name="keyboardsTitle" value="Choose one option:"/>
@@ -52,67 +66,106 @@
                 <simple>${body}</simple>
             </setHeader>
             <to uri="direct:checkAccessRights"/>
+            <log message="USER: ${header.incomingMessage.getFrom.firstName} COMMAND: ${header.incomingMessage.getText}" loggingLevel="INFO"/>
             <choice>
                 <when>
                     <simple resultType="java.lang.Boolean">${header.accessAllowed} != true</simple>
                     <choice>
                         <when>
-                            <simple>${header.incomingMessage.getText} == {{chat.registration.password}}</simple>
-                            <to uri="direct:loginNewUser"/>
-                            <setBody>
-                                <simple>
-                                    Access is allowed! Welcome to the Chat-Bot!
-                                </simple>
-                            </setBody>
+                            <simple>${header.incomingMessage.getText} contains 'password:'</simple>
+                            <bean ref="test" method="test('VERIFY')"/>
+                            <to uri="direct:verifyPassword"/>
+                            <to uri="direct:checkAccessRights"/>
+                            <choice>
+                                <when>
+                                    <simple resultType="java.lang.Boolean">${header.accessAllowed} == true</simple>
+                                    <to uri="direct:getKeyboard"/>
+                                    <to uri="telegramBot"/>
+                                </when>
+                                <otherwise>
+                                    <setBody>
+                                        <constant>Доступ закрыт. Запросите пароль у администратора чата и введите его в формате password:пароль_выданный_администратором
+                                        </constant>
+                                    </setBody>
+                                    <to uri="telegramBot"/>
+                                </otherwise>
+                            </choice>
                         </when>
                         <otherwise>
+                            <to uri="direct:loginNewUser"/>
                             <setBody>
-                                <simple>ACCESS IS DENIED! Please enter the password in following format:"password:[password]"
-                                </simple>
+                                <constant>Доступ закрыт. Запросите пароль у администратора чата и введите его в формате password:[password]
+                                </constant>
                             </setBody>
+                            <to uri="telegramBot"/>
                         </otherwise>
                     </choice>
-                    <to uri="telegramBot"/>
                 </when>
                 <otherwise>
-                    <to uri="direct:handleUserCommand"/>
-                    <bean ref="keyboardBuilder" method="getKeyBoard"/>
-                    <to uri="telegramBot"/>
+                    <to uri="direct:handleCommand"/>
                 </otherwise>
             </choice>
+        </route>
+
+        <route>
+            <from uri="direct:handleCommand"/>
+            <to uri="direct:handleUserCommand"/>
+            <to uri="telegramBot"/>
         </route>
 
         <route>
             <from uri="direct:handleUserCommand"/>
             <choice>
                 <when>
+                    <simple>${header.incomingMessage.getText} == 'Get users'</simple>
+                    <to uri="direct:getUsersInformation"/>
+                </when>
+                <when>
+                    <simple>${header.incomingMessage.getText} == 'Test'</simple>
+                    <setBody>
+                        <constant>HEY HEY HEY! NE BALUI! =))</constant>
+                    </setBody>
+                </when>
+                <when>
                     <simple>${header.incomingMessage.getText} == 'Short tasks statistic'</simple>
                     <setHeader name="CamelHttpUri">
-                        <constant>{{aflmonitor.endpoint.short-task-stat}}?throwExceptionOnFailure=false&amp;bridgeEndpoint=true&amp;httpMethod=POST&amp;copyHeaders=true</constant>
+                        <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.short-task-stat}}</constant>
                     </setHeader>
                     <to uri="direct:sendPostRequestToAflMonitor"/>
                 </when>
                 <when>
                     <simple>${header.incomingMessage.getText} == 'Short voice calls statistic'</simple>
                     <setHeader name="CamelHttpUri">
-                        <constant>{{aflmonitor.endpoint.short-calls-stat}}?throwExceptionOnFailure=false&amp;bridgeEndpoint=true&amp;httpMethod=POST&amp;copyHeaders=true</constant>
+                        <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.short-calls-stat}}</constant>
                     </setHeader>
                     <to uri="direct:sendPostRequestToAflMonitor"/>
                 </when>
                 <when>
                     <simple>${header.incomingMessage.getText} == 'Sabre.pl log'</simple>
                     <setHeader name="CamelHttpUri">
-                        <constant>{{aflmonitor.endpoint.sabrepllog}}?throwExceptionOnFailure=false&amp;bridgeEndpoint=true&amp;httpMethod=POST&amp;copyHeaders=true</constant>
+                        <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.sabrepllog}}</constant>
                     </setHeader>
                     <to uri="direct:sendPostRequestToAflMonitor"/>
-                    <bean ref="test" method="getLastSubstring(4096)"/>
+                    <bean ref="utils" method="getLastSubstring(4096)"/>
+                </when>
+                <when>
+                    <simple>${header.incomingMessage.getText} == 'Sabre.pl status'</simple>
+                    <setHeader name="CamelHttpUri">
+                        <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.sabreplstate}}</constant>
+                    </setHeader>
+                    <to uri="direct:sendPostRequestToAflMonitor"/>
+                    <bean ref="utils" method="getLastSubstring(4096)"/>
                 </when>
                 <when>
                     <simple>${header.incomingMessage.getText} == 'Short SabreIx statistic'</simple>
                     <setHeader name="CamelHttpUri">
-                        <constant>{{aflmonitor.endpoint.short-sabreix-stat}}?throwExceptionOnFailure=false&amp;bridgeEndpoint=true&amp;httpMethod=POST&amp;copyHeaders=true</constant>
+                        <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.short-sabreix-stat}}</constant>
                     </setHeader>
                     <to uri="direct:sendPostRequestToAflMonitor"/>
+                </when>
+                <when>
+                    <simple>${header.incomingMessage.getText} == 'keyboard'</simple>
+                    <to uri="direct:getKeyboard"/>
                 </when>
                 <otherwise>
                     <setBody>
@@ -123,7 +176,38 @@
         </route>
 
         <route>
+            <from uri="direct:getKeyboard"/>
+            <to uri="direct:checkIsAdmin"/>
+            <choice>
+                <when>
+                    <simple resultType="java.lang.Boolean">${header.isAdmin} == true</simple>
+                    <bean ref="keyboardBuilder" method="getKeyBoard('ADMIN')"/>
+                </when>
+                <otherwise>
+                    <bean ref="keyboardBuilder" method="getKeyBoard('USER')"/>
+                </otherwise>
+            </choice>
+        </route>
+
+        <route>
+            <from uri="direct:verifyPassword"/>
+            <setHeader name="USER_ID">
+                <simple>${header.incomingMessage.getFrom.getId}</simple>
+            </setHeader>
+            <setHeader name="PASSWORD">
+                <simple>${header.incomingMessage.getText}</simple>
+            </setHeader>
+            <setBody>
+                <simple>
+                    UPDATE TELEGRAM_USERS SET REGISTERED = true WHERE USERID = :?USER_ID AND 'password:' || PASSWORD = :?PASSWORD
+                </simple>
+            </setBody>
+            <to uri="jdbc:dataSource?useHeadersAsParameters=true"/>
+        </route>
+
+        <route>
             <from uri="direct:checkAccessRights"/>
+            <bean ref="test" method="test"/>
             <setHeader name="USER_ID">
                 <simple>${header.incomingMessage.getFrom.getId}</simple>
             </setHeader>
@@ -139,6 +223,23 @@
         </route>
 
         <route>
+            <from uri="direct:checkIsAdmin"/>
+            <setHeader name="USER_ID">
+                <simple>${header.incomingMessage.getFrom.getId}</simple>
+            </setHeader>
+            <setBody>
+                <simple>
+                    SELECT DISTINCT ADMIN FROM TELEGRAM_USERS WHERE USERID = :?USER_ID
+                </simple>
+            </setBody>
+            <to uri="jdbc:dataSource?useHeadersAsParameters=true&amp;outputType=SelectOne"/>
+            <bean ref="test" method="test"/>
+            <setHeader name="isAdmin">
+                <simple resultType="java.lang.Boolean">${body} == true</simple>
+            </setHeader>
+        </route>
+
+        <route>
             <from uri="direct:loginNewUser"/>
             <setHeader name="USERID">
                 <simple>${header.incomingMessage.getFrom.getId}</simple>
@@ -146,14 +247,27 @@
             <setHeader name="CHATID">
                 <simple>${header.incomingMessage.getChat.getId}</simple>
             </setHeader>
+            <setHeader name="FIRSTNAME">
+                <simple>${header.incomingMessage.getFrom.firstName}</simple>
+            </setHeader>
+            <setHeader name="LASTNAME">
+                <simple>${header.incomingMessage.getFrom.lastName}</simple>
+            </setHeader>
+            <setHeader name="USERNAME">
+                <simple>${header.incomingMessage.getFrom.username}</simple>
+            </setHeader>
+            <setHeader name="PASSWORD">
+                <method ref="utils" method="generatePassword(6)"/>
+            </setHeader>
             <setBody>
                 <simple>
-                    INSERT INTO TELEGRAM_USERS (USERID, CHATID, REGISTERED,updatetime)
-                    SELECT :?USERID, :?CHATID, true, CURRENT_TIME
+                    INSERT INTO TELEGRAM_USERS (USERID, CHATID, FIRSTNAME , LASTNAME, USERNAME, REGISTERED, NOTIFICATIONS, ADMIN, PASSWORD, updatetime)
+                    SELECT :?USERID, :?CHATID, :?FIRSTNAME, :?LASTNAME, :?USERNAME, false, false, false, :?PASSWORD, CURRENT_TIME
                     WHERE NOT EXISTS (SELECT 1 FROM TELEGRAM_USERS WHERE USERID = :?USERID AND CHATID = :?CHATID)
                 </simple>
             </setBody>
             <to uri="jdbc:dataSource?useHeadersAsParameters=true"/>
+            <bean ref="test" method="test('NEW_USER')"/>
         </route>
 
         <route>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<routes xmlns="http://camel.apache.org/schema/spring">
+
+    <route>
+        <from uri="direct:getUsersInformation"/>
+        <to uri="direct:checkAdminRights"/>
+        <choice>
+            <when>
+                <simple resultType="java.lang.Boolean">${header.accessAllowed} == true</simple>
+                <to uri="direct:getUsersInfo"/>
+            </when>
+            <otherwise>
+                <setBody>
+                    <constant>Access denied!</constant>
+                </setBody>
+            </otherwise>
+        </choice>
+        <!--<to uri="telegramBot"/>-->
+    </route>
+
+    <route>
+        <from uri="direct:checkAdminRights"/>
+        <setHeader name="USER_ID">
+            <simple>${header.incomingMessage.getFrom.getId}</simple>
+        </setHeader>
+        <setBody>
+            <simple>
+                SELECT ADMIN FROM TELEGRAM_USERS WHERE USERID = :?USER_ID AND REGISTERED = true
+            </simple>
+        </setBody>
+        <to uri="jdbc:dataSource?useHeadersAsParameters=true&amp;outputType=SelectOne"/>
+        <setHeader name="accessAllowed">
+            <simple resultType="java.lang.Boolean">${body} == true</simple>
+        </setHeader>
+    </route>
+
+    <route>
+        <from uri="direct:getUsersInfo"/>
+        <setHeader name="USER_ID">
+            <simple>${header.incomingMessage.getFrom.getId}</simple>
+        </setHeader>
+        <setBody>
+            <simple>
+                SELECT * FROM TELEGRAM_USERS
+            </simple>
+        </setBody>
+        <to uri="jdbc:dataSource?useHeadersAsParameters=true&amp;outputType=SelectList"/>
+
+    </route>
+
+</routes>

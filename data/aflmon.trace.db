@@ -1,0 +1,144 @@
+2022-06-21 15:29:26 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Столбец "ADMIN" не найден
+Column "ADMIN" not found; SQL statement:
+INSERT INTO TELEGRAM_USERS (USERID, CHATID, FIRSTNAME , LASTNAME, USERNAME, REGISTERED, NOTIFICATIONS, ADMIN, PASSWORD, updatetime)
+                    SELECT ?, ?, ?, ?, ?, false, false, false, ?, CURRENT_TIME
+                    WHERE NOT EXISTS (SELECT 1 FROM TELEGRAM_USERS WHERE USERID = ? AND CHATID = ?) [42122-200]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:453)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:429)
+	at org.h2.message.DbException.get(DbException.java:205)
+	at org.h2.message.DbException.get(DbException.java:181)
+	at org.h2.table.Table.getColumn(Table.java:703)
+	at org.h2.command.Parser.parseColumn(Parser.java:1450)
+	at org.h2.command.Parser.parseColumnList(Parser.java:1435)
+	at org.h2.command.Parser.parseInsertGivenTable(Parser.java:1804)
+	at org.h2.command.Parser.parseInsert(Parser.java:1749)
+	at org.h2.command.Parser.parsePrepared(Parser.java:954)
+	at org.h2.command.Parser.parse(Parser.java:843)
+	at org.h2.command.Parser.parse(Parser.java:815)
+	at org.h2.command.Parser.prepareCommand(Parser.java:738)
+	at org.h2.engine.Session.prepareLocal(Session.java:657)
+	at org.h2.engine.Session.prepareCommand(Session.java:595)
+	at org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1235)
+	at org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:76)
+	at org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:352)
+	at org.apache.commons.dbcp.DelegatingConnection.prepareStatement(DelegatingConnection.java:248)
+	at org.apache.commons.dbcp.PoolingDataSource$PoolGuardConnectionWrapper.prepareStatement(PoolingDataSource.java:302)
+	at org.apache.camel.component.jdbc.JdbcProducer.doCreateAndExecuteSqlStatementWithHeaders(JdbcProducer.java:148)
+	at org.apache.camel.component.jdbc.JdbcProducer.createAndExecuteSqlStatement(JdbcProducer.java:119)
+	at org.apache.camel.component.jdbc.JdbcProducer.processingSqlBySettingAutoCommit(JdbcProducer.java:82)
+	at org.apache.camel.component.jdbc.JdbcProducer.process(JdbcProducer.java:63)
+	at org.apache.camel.support.AsyncProcessorConverterHelper$ProcessorToAsyncProcessorBridge.process(AsyncProcessorConverterHelper.java:67)
+	at org.apache.camel.processor.SendProcessor.process(SendProcessor.java:134)
+	at org.apache.camel.processor.errorhandler.RedeliveryErrorHandler$RedeliveryState.run(RedeliveryErrorHandler.java:476)
+	at org.apache.camel.impl.engine.DefaultReactiveExecutor$Worker.schedule(DefaultReactiveExecutor.java:185)
+	at org.apache.camel.impl.engine.DefaultReactiveExecutor.scheduleMain(DefaultReactiveExecutor.java:59)
+	at org.apache.camel.processor.Pipeline.process(Pipeline.java:87)
+	at org.apache.camel.processor.CamelInternalProcessor.process(CamelInternalProcessor.java:228)
+	at org.apache.camel.impl.engine.DefaultAsyncProcessorAwaitManager.process(DefaultAsyncProcessorAwaitManager.java:78)
+	at org.apache.camel.support.AsyncProcessorSupport.process(AsyncProcessorSupport.java:40)
+	at org.apache.camel.component.telegram.TelegramConsumer.processUpdates(TelegramConsumer.java:87)
+	at org.apache.camel.component.telegram.TelegramConsumer.poll(TelegramConsumer.java:73)
+	at org.apache.camel.support.ScheduledPollConsumer.doRun(ScheduledPollConsumer.java:183)
+	at org.apache.camel.support.ScheduledPollConsumer.run(ScheduledPollConsumer.java:102)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.runAndReset(FutureTask.java:308)
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$301(ScheduledThreadPoolExecutor.java:180)
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:294)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:748)
+2022-06-21 15:54:30 jdbc[4]: exception
+org.h2.jdbc.JdbcSQLFeatureNotSupportedException: Данная функция не поддерживается: "VARCHAR +"
+Feature not supported: "VARCHAR +"; SQL statement:
+SELECT PASSWORD + '123',* FROM TELEGRAM_USERS [50100-200]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:507)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:429)
+	at org.h2.message.DbException.get(DbException.java:205)
+	at org.h2.message.DbException.get(DbException.java:181)
+	at org.h2.message.DbException.getUnsupportedException(DbException.java:269)
+	at org.h2.value.Value.getUnsupportedExceptionForOperation(Value.java:1743)
+	at org.h2.value.Value.add(Value.java:674)
+	at org.h2.expression.BinaryOperation.getValue(BinaryOperation.java:104)
+	at org.h2.command.dml.Select$LazyResultQueryFlat.fetchNextRow(Select.java:1851)
+	at org.h2.result.LazyResult.hasNext(LazyResult.java:101)
+	at org.h2.result.LazyResult.next(LazyResult.java:60)
+	at org.h2.command.dml.Select.queryFlat(Select.java:737)
+	at org.h2.command.dml.Select.queryWithoutCache(Select.java:844)
+	at org.h2.command.dml.Query.queryWithoutCacheLazyCheck(Query.java:201)
+	at org.h2.command.dml.Query.query(Query.java:489)
+	at org.h2.command.dml.Query.query(Query.java:451)
+	at org.h2.command.CommandContainer.query(CommandContainer.java:285)
+	at org.h2.command.Command.executeQuery(Command.java:195)
+	at org.h2.jdbc.JdbcStatement.executeInternal(JdbcStatement.java:222)
+	at org.h2.jdbc.JdbcStatement.execute(JdbcStatement.java:201)
+	at org.h2.server.web.WebApp.getResult(WebApp.java:1459)
+	at org.h2.server.web.WebApp.query(WebApp.java:1116)
+	at org.h2.server.web.WebApp.query(WebApp.java:1092)
+	at org.h2.server.web.WebApp.process(WebApp.java:241)
+	at org.h2.server.web.WebApp.processRequest(WebApp.java:173)
+	at org.h2.server.web.WebServlet.doGet(WebServlet.java:129)
+	at org.h2.server.web.WebServlet.doPost(WebServlet.java:166)
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:660)
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:741)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:231)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166)
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:53)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166)
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:119)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166)
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:119)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166)
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201)
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:119)
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:193)
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:166)
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:202)
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:96)
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:541)
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:139)
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:92)
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74)
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:343)
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:367)
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:65)
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:860)
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1598)
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:49)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61)
+	at java.lang.Thread.run(Thread.java:748)
+2022-06-22 11:11:54 jdbc[4]: exception
+org.h2.jdbc.JdbcSQLDataException: Ошибка преобразования данных при конвертации "5300889714"
+Data conversion error converting "5300889714"; SQL statement:
+SELECT firstname, lastname, username,password,registered,updatetime
+FROM TELEGRAM_USERS 
+where exists (select from TELEGRAM_USERS  where userid = 533083578 and admin = true) [22018-200]
+2022-06-22 11:13:33 jdbc[4]: exception
+org.h2.jdbc.JdbcSQLDataException: Ошибка преобразования данных при конвертации "5300889714"
+Data conversion error converting "5300889714"; SQL statement:
+SELECT firstname, lastname, username,password,registered,updatetime
+FROM TELEGRAM_USERS 
+where exists (select 1 from TELEGRAM_USERS  where userid = 533083578 and admin = true) [22018-200]
+2022-06-22 11:14:16 jdbc[4]: exception
+org.h2.jdbc.JdbcSQLDataException: Ошибка преобразования данных при конвертации "5300889714"
+Data conversion error converting "5300889714"; SQL statement:
+select 1 from TELEGRAM_USERS  where userid = 533083578 and admin = true [22018-200]
+2022-06-22 11:15:08 jdbc[4]: exception
+org.h2.jdbc.JdbcSQLDataException: Ошибка преобразования данных при конвертации "5300889714"
+Data conversion error converting "5300889714"; SQL statement:
+select * from TELEGRAM_USERS  where userid = 533083578 [22018-200]
+2022-06-22 13:50:19 jdbc[4]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Синтаксическая ошибка в выражении SQL "SELECT TRUE FROM TELEGRAM_USERS WHERE USERID = :[*]?USER_ID AND ADMIN = TRUE AND REGISTERED = TRUE"; ожидалось "ALL, ANY, SOME"
+Syntax error in SQL statement "SELECT TRUE FROM TELEGRAM_USERS WHERE USERID = :[*]?USER_ID AND ADMIN = TRUE AND REGISTERED = TRUE"; expected "ALL, ANY, SOME"; SQL statement:
+SELECT true FROM TELEGRAM_USERS WHERE USERID = :?USER_ID AND ADMIN = true AND REGISTERED = true [42001-200]
+2022-06-22 13:50:39 jdbc[4]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Синтаксическая ошибка в выражении SQL "SELECT ADMIN FROM TELEGRAM_USERS WHERE USERID = :[*]?USER_ID AND REGISTERED = TRUE"; ожидалось "ALL, ANY, SOME"
+Syntax error in SQL statement "SELECT ADMIN FROM TELEGRAM_USERS WHERE USERID = :[*]?USER_ID AND REGISTERED = TRUE"; expected "ALL, ANY, SOME"; SQL statement:
+SELECT ADMIN FROM TELEGRAM_USERS WHERE USERID = :?USER_ID AND REGISTERED = true [42001-200]

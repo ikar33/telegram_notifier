@@ -5,31 +5,65 @@
         <from uri="direct:getRegisteredChatIds"/>
         <setBody>
             <simple>
-                SELECT STRING_AGG(CHATID,',') AS CHATUDLIST FROM TELEGRAM_USERS WHERE REGISTERED = TRUE
+                SELECT CHATID FROM TELEGRAM_USERS WHERE REGISTERED = TRUE
             </simple>
         </setBody>
-        <to uri="jdbc:dataSource?useHeadersAsParameters=true&amp;outputType=SelectOne"/>
+        <to uri="jdbc:dataSource?useHeadersAsParameters=true&amp;outputType=SelectList"/>
         <setHeader name="CamelTelegramChatId">
             <simple>${body}</simple>
         </setHeader>
     </route>
 
+    <route>
+        <from uri="direct:getRegisteredChatIdsForNotify"/>
+        <setBody>
+            <simple>
+                SELECT CHATID FROM TELEGRAM_USERS WHERE REGISTERED = TRUE AND NOTIFICATIONS = TRUE
+            </simple>
+        </setBody>
+        <to uri="jdbc:dataSource?useHeadersAsParameters=true&amp;outputType=SelectList"/>
+        <setHeader name="CamelTelegramChatId">
+            <simple>${body}</simple>
+        </setHeader>
+    </route>
 
     <route>
-        <from uri="scheduler://foo?delay=30000"/>
+        <from uri="quartz:foo?cron={{cron.every5min}}"/>
         <multicast>
-           <to uri="direct:sabrePlLogsParser"/>
-            <!--<to uri="direct:dialerState" />-->
+            <to uri="direct:sabrePlLogsParser"/>
         </multicast>
     </route>
 
     <route>
-        <from uri="direct:dialerState" />
+        <from uri="quartz:foo?cron={{cron.every15min}}"/>
+        <multicast>
+            <to uri="direct:sabreplServiceState"/>
+        </multicast>
+    </route>
+
+
+    <route>
+        <from uri="direct:multicast"/>
+        <to uri="direct:getRegisteredChatIdsForNotify"/>
+        <split>
+            <simple>${body}</simple>
+            <setHeader name="CamelTelegramChatId">
+                <simple>${body.get('CHATID')}</simple>
+            </setHeader>
+            <setBody>
+                <simple>${header.NOTIFY_MESSAGE}</simple>
+            </setBody>
+            <to uri="telegramBot"/>
+        </split>
+    </route>
+
+    <route>
+        <from uri="direct:dialerState"/>
         <setBody>
             <simple>{limitInSec: 120, periodInSec: 600}</simple>
         </setBody>
         <setHeader name="CamelHttpUri">
-            <constant>http://172.25.0.70:8085/gpmonitor/dialstat/get-processing-wait-time?throwExceptionOnFailure=false&amp;bridgeEndpoint=true&amp;httpMethod=POST&amp;copyHeaders=true</constant>
+            <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.dialer-state}}</constant>
         </setHeader>
         <setHeader name="Content-Type">
             <constant>application/json</constant>
@@ -44,29 +78,50 @@
         <transform>
             <simple resultType="java.lang.String">${body}</simple>
         </transform>
-        <bean ref="test" method="test"/>
-<!--        <to uri="direct:getRegisteredChatIds"/>
-        <setBody>
+        <to uri="direct:getRegisteredChatIds"/>
+        <setHeader name="NOTIFY_MESSAGE">
             <simple>WARNING IN SABRE.PL LOG</simple>
-        </setBody>
-        <to uri="telegramBot"/>-->
+        </setHeader>
+    </route>
+
+    <route>
+        <from uri="direct:sabreplServiceState"/>
+        <setHeader name="CamelHttpUri">
+            <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.sabreplstate}}</constant>
+        </setHeader>
+        <to uri="direct:sendPostRequestToAflMonitor"/>
+        <bean ref="utils" method="getLastSubstring(4096)"/>
+        <choice>
+            <when>
+                <simple>${bodyAs(String)} contains 'not running'</simple>
+                <to uri="direct:getRegisteredChatIds"/>
+                <setHeader name="NOTIFY_MESSAGE">
+                    <simple>SABRE.PL IS NOT RUNNING</simple>
+                </setHeader>
+                <to uri="direct:multicast"/>
+            </when>
+        </choice>
     </route>
 
 
     <route>
         <from uri="direct:sabrePlLogsParser"/>
         <setHeader name="CamelHttpUri">
-            <constant>{{aflmonitor.endpoint.sabrepllog}}?throwExceptionOnFailure=false&amp;bridgeEndpoint=true&amp;httpMethod=POST&amp;copyHeaders=true</constant>
+            <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.sabrepllog}}</constant>
         </setHeader>
         <to uri="direct:sendPostRequestToAflMonitor"/>
         <choice>
             <when>
-                <simple>${bodyAs(String)} contains 'error: DBD' || ${bodyAs(String)} contains 'Got DBI error' || ${bodyAs(String)} contains 'FATAL'  </simple>
+                <simple>${bodyAs(String)} contains 'error: DBD' ||
+                    ${bodyAs(String)} contains 'DBI error' ||
+                    ${bodyAs(String)} contains 'FATAL' ||
+                    ${bodyAs(String)} contains 'ERROR'
+                </simple>
                 <to uri="direct:getRegisteredChatIds"/>
-                <setBody>
+                <setHeader name="NOTIFY_MESSAGE">
                     <simple>ERROR IN SABRE.PL LOG</simple>
-                </setBody>
-                <to uri="telegramBot"/>
+                </setHeader>
+                <to uri="direct:multicast"/>
             </when>
         </choice>
     </route>
