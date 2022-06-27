@@ -45,6 +45,8 @@
                 <value>Short voice calls statistic</value>
                 <value>Short SabreIx statistic</value>
                 <value>Get users</value>
+                <value>Sabre start</value>
+                <value>Sabre stop</value>
                 <value>Test</value>
             </list>
         </constructor-arg>
@@ -166,6 +168,20 @@
                 <when>
                     <simple>${header.incomingMessage.getText} == 'keyboard'</simple>
                     <to uri="direct:getKeyboard"/>
+                </when>
+                <when>
+                    <simple>${header.incomingMessage.getText} == 'Sabre start'</simple>
+                    <setHeader name="CamelHttpUri">
+                        <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.sabre-command}}?command=sabre start</constant>
+                    </setHeader>
+                    <to uri="direct:sendPostRequestToAflMonitor"/>
+                </when>
+                <when>
+                    <simple>${header.incomingMessage.getText} == 'Sabre stop'</simple>
+                    <setHeader name="CamelHttpUri">
+                        <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.sabre-command}}?command=sabre stop</constant>
+                    </setHeader>
+                    <to uri="direct:sendPostRequestToAflMonitor"/>
                 </when>
                 <otherwise>
                     <setBody>

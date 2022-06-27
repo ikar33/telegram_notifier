@@ -28,14 +28,14 @@
     </route>
 
     <route>
-        <from uri="quartz:foo?cron={{cron.every5min}}"/>
+        <from uri="quartz:schel1?cron={{cron.every5min}}"/>
         <multicast>
             <to uri="direct:sabrePlLogsParser"/>
         </multicast>
     </route>
 
     <route>
-        <from uri="quartz:foo?cron={{cron.every15min}}"/>
+        <from uri="quartz:schel2?cron={{cron.every15min}}"/>
         <multicast>
             <to uri="direct:sabreplServiceState"/>
         </multicast>
