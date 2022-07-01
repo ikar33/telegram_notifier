@@ -93,10 +93,13 @@
         <bean ref="utils" method="getLastSubstring(4096)"/>
         <choice>
             <when>
-                <simple>${bodyAs(String)} contains 'not running'</simple>
+                <simple>${bodyAs(String)} contains 'not running' || ${bodyAs(String)} not contains '1sabre.pl'</simple>
                 <to uri="direct:getRegisteredChatIds"/>
                 <setHeader name="NOTIFY_MESSAGE">
-                    <simple>SABRE.PL IS NOT RUNNING</simple>
+                    <simple>*SABRE.PL IS NOT RUNNING*</simple>
+                </setHeader>
+                <setHeader name="CamelTelegramParseMode">
+                    <constant>MARKDOWN</constant>
                 </setHeader>
                 <to uri="direct:multicast"/>
             </when>
@@ -118,6 +121,9 @@
                     ${bodyAs(String)} contains 'ERROR'
                 </simple>
                 <to uri="direct:getRegisteredChatIds"/>
+                <setHeader name="CamelTelegramParseMode">
+                    <constant>MARKDOWN</constant>
+                </setHeader>
                 <setHeader name="NOTIFY_MESSAGE">
                     <simple>ERROR IN SABRE.PL LOG</simple>
                 </setHeader>
