@@ -93,7 +93,7 @@
         <bean ref="utils" method="getLastSubstring(4096)"/>
         <choice>
             <when>
-                <simple>${bodyAs(String)} contains 'not running' || ${bodyAs(String)} not contains '1sabre.pl'</simple>
+                <simple>${bodyAs(String)} contains 'not running' || ${bodyAs(String)} not contains 'sabre.pl'</simple>
                 <to uri="direct:getRegisteredChatIds"/>
                 <setHeader name="NOTIFY_MESSAGE">
                     <simple>*SABRE.PL IS NOT RUNNING*</simple>
