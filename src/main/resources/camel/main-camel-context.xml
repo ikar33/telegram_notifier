@@ -32,6 +32,7 @@
             <list>
                 <value>Short tasks statistic</value>
                 <value>Short voice calls statistic</value>
+                <value>Waiting calls statistic</value>
                 <value>Short SabreIx statistic</value>
                 <value>Sabre.pl status</value>
                 <value>Sabre.pl log</value>
@@ -43,6 +44,7 @@
                 <value>Sabre.pl status</value>
                 <value>Short tasks statistic</value>
                 <value>Short voice calls statistic</value>
+                <value>Waiting calls statistic</value>
                 <value>Short SabreIx statistic</value>
                 <value>Get users</value>
                 <value>Sabre start</value>
@@ -141,6 +143,29 @@
                         <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.short-calls-stat}}</constant>
                     </setHeader>
                     <to uri="direct:sendPostRequestToAflMonitor"/>
+                </when>
+                <when>
+                    <simple>${header.incomingMessage.getText} == 'Waiting calls statistic'</simple>
+                    <setHeader name="CamelHttpUri">
+                        <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.waiting-calls-stat}}</constant>
+                    </setHeader>
+                    <to uri="direct:sendPostRequestToAflMonitor"/>
+                    <setHeader name="JSON_WAITING_CALLS">
+                        <jsonpath suppressExceptions="true" writeAsString="true">$.values.[0].waiting_calls</jsonpath>
+                    </setHeader>
+                    <setHeader name="JSON_WAITING_TIME">
+                        <jsonpath suppressExceptions="true" writeAsString="true">$.values.[0].max_waiting_time</jsonpath>
+                    </setHeader>
+                    <setHeader name="JSON_WAITING_DURING_DATE">
+                        <jsonpath suppressExceptions="true" writeAsString="true">$.values.[0].waiting_during_date</jsonpath>
+                    </setHeader>
+                    <transform>
+                        <simple>
+Количество ожидающих звонков: ${header.JSON_WAITING_CALLS}
+Максимальное время ожидания обработки: ${header.JSON_WAITING_TIME}
+Время первой попытки: ${header.JSON_WAITING_DURING_DATE}
+                        </simple>
+                    </transform>
                 </when>
                 <when>
                     <simple>${header.incomingMessage.getText} == 'Sabre.pl log'</simple>

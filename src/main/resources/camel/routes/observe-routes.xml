@@ -28,9 +28,10 @@
     </route>
 
     <route>
-        <from uri="quartz:schel1?cron={{cron.every5min}}"/>
+        <from uri="quartz:schel1?cron={{cron.every10min}}"/>
         <multicast>
             <to uri="direct:sabrePlLogsParser"/>
+            <to uri="direct:waitingCallsStatisticRoute"/>
         </multicast>
     </route>
 
@@ -78,7 +79,7 @@
         <transform>
             <simple resultType="java.lang.String">${body}</simple>
         </transform>
-        <to uri="direct:getRegisteredChatIds"/>
+        <to uri="direct:getRegisteredChatIdsForNotify"/>
         <setHeader name="NOTIFY_MESSAGE">
             <simple>WARNING IN SABRE.PL LOG</simple>
         </setHeader>
@@ -94,7 +95,7 @@
         <choice>
             <when>
                 <simple>${bodyAs(String)} contains 'not running' || ${bodyAs(String)} not contains 'sabre.pl'</simple>
-                <to uri="direct:getRegisteredChatIds"/>
+                <to uri="direct:getRegisteredChatIdsForNotify"/>
                 <setHeader name="NOTIFY_MESSAGE">
                     <simple>*SABRE.PL IS NOT RUNNING*</simple>
                 </setHeader>
@@ -120,7 +121,7 @@
                     ${bodyAs(String)} contains 'FATAL' ||
                     ${bodyAs(String)} contains 'ERROR'
                 </simple>
-                <to uri="direct:getRegisteredChatIds"/>
+                <to uri="direct:getRegisteredChatIdsForNotify"/>
                 <setHeader name="CamelTelegramParseMode">
                     <constant>MARKDOWN</constant>
                 </setHeader>
@@ -131,4 +132,39 @@
             </when>
         </choice>
     </route>
+
+    <route>
+        <from uri="direct:waitingCallsStatisticRoute"/>
+        <setHeader name="CamelHttpUri">
+            <constant>{{aflmonitor.endpoint.baseurl}}{{aflmonitor.endpoint.waiting-calls-stat}}</constant>
+        </setHeader>
+        <to uri="direct:sendPostRequestToAflMonitor"/>
+        <choice>
+            <when>
+                <jsonpath>$.values.[?(@.waiting_calls &gt; -1)]</jsonpath>
+                <setHeader name="JSON_WAITING_CALLS">
+                    <jsonpath suppressExceptions="true" writeAsString="true">$.values.[0].waiting_calls</jsonpath>
+                </setHeader>
+                <setHeader name="JSON_WAITING_TIME">
+                    <jsonpath suppressExceptions="true" writeAsString="true">$.values.[0].max_waiting_time</jsonpath>
+                </setHeader>
+                <setHeader name="JSON_WAITING_DURING_DATE">
+                    <jsonpath suppressExceptions="true" writeAsString="true">$.values.[0].waiting_during_date</jsonpath>
+                </setHeader>
+                <setHeader name="NOTIFY_MESSAGE">
+                    <simple>Внимание! Более 50-ти звонков находятся в статусе ожидания.\n\r
+Количество ожидающих звонков: ${header.JSON_WAITING_CALLS}
+Максимальное время ожидания обработки: ${header.JSON_WAITING_TIME}
+Время первой попытки: ${header.JSON_WAITING_DURING_DATE}
+                    </simple>
+                </setHeader>
+                <to uri="direct:getRegisteredChatIdsForNotify"/>
+                <setHeader name="CamelTelegramParseMode">
+                    <constant>MARKDOWN</constant>
+                </setHeader>
+                <to uri="direct:multicast"/>
+            </when>
+        </choice>
+    </route>
+
 </routes>
